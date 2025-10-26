@@ -195,9 +195,8 @@ static int play_from_file(int recording_fd)
 		int ret;
 		char line[32];
 
-		printf("Hit enter to start replaying");
+		printf("Starting Replay");
 		fflush(stdout);
-		fgets(line, sizeof(line), stdin);
 
 		fseek(fp, 0, SEEK_SET);
 		ret = evemu_play(fp, fd);
