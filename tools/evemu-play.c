@@ -191,19 +191,16 @@ static int play_from_file(int recording_fd)
 	if (fd < 0)
 		goto out;
 
-	while (1) {
-		int ret;
-		char line[32];
+	int ret;
+	char line[32];
 
-		printf("Starting Replay");
-		fflush(stdout);
+	printf("Starting Evemu Replay");
+	fflush(stdout);
 
-		fseek(fp, 0, SEEK_SET);
-		ret = evemu_play(fp, fd);
-		if (ret != 0) {
-			fprintf(stderr, "error: could not replay device\n");
-			break;
-		}
+	fseek(fp, 0, SEEK_SET);
+	ret = evemu_play(fp, fd);
+	if (ret != 0) {
+		fprintf(stderr, "error: could not replay device\n");
 	}
 
 out:
