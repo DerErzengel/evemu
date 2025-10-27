@@ -194,12 +194,13 @@ static int play_from_file(int recording_fd)
 	int ret;
 	char line[32];
 
-	for(int i = 10; i > 0; i--) {
-		printf("Starting Replay in", i, " Seconds");
+	for (int i = 10; i > 0; i--) {
+		printf("Starting Replay in %d Seconds\r", i);
 		fflush(stdout);
-		sleep(1)
+		sleep(1);
 	}
-
+	
+	printf("\n");
 	printf("Starting Evemu Replay");
 	fflush(stdout);
 
