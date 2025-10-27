@@ -936,6 +936,12 @@ int evemu_play(FILE *fp, int fd)
 		}
 	}
 
+	for (int i = 15; i > 0; i--) {
+		printf("Starting Replay in %d Seconds\r", i);
+		fflush(stdout);
+		sleep(1);
+	}
+
 	memset(&evtime, 0, sizeof(evtime));
 	while (evemu_read_event_realtime(fp, &ev, &evtime) > 0) {
 		if (dev &&
