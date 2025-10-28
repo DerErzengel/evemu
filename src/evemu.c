@@ -772,7 +772,7 @@ static int write_event_desc(FILE *fp, const struct input_event *ev)
 int evemu_init_event(FILE *fp)
 {
 	int rc;
-	rc = fprintf(fp, "E: 0.000000 0000 0000 0000\n");
+	rc = fprintf(fp, "E: 0.000001 0001 0001 0001\n");
 	return rc;
 }
 
@@ -915,7 +915,7 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
 			*evtime = ev->time;
 		usec = time_to_long(&ev->time) - time_to_long(evtime);
 		if (usec > ERROR_MARGIN * 2) {
-			printf("INFO: Sleeping for %lds.\n", us2s(usec));
+			printf("INFO: Sleeping for %lds.\n", usec);
 			fflush(stdout);
 
 			usleep(usec - ERROR_MARGIN);
