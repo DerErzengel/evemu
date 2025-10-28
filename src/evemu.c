@@ -915,13 +915,13 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
 			*evtime = ev->time;
 		usec = time_to_long(&ev->time) - time_to_long(evtime);
 		if (usec > ERROR_MARGIN * 2) {
-			if (usec > s2us(10))
-				fprintf(stdout, "INFO: Sleeping for %lds.\n", us2s(usec));
+			printf("INFO: Sleeping for %lds.\n", us2s(usec));
+			fflush(stdout);
+
 			usleep(usec - ERROR_MARGIN);
 			*evtime = ev->time;
 		}
 	}
-	fflush(stdout);
 	return ret;
 }
 
