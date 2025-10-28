@@ -795,11 +795,11 @@ int evemu_record(FILE *fp, int fd, int ms)
 	int ret;
 	long offset = 0;
 
-	    // --- set starting offset immediately in device microsecond format ---
-    struct timeval start;
-    start.tv_sec = 0;
-    start.tv_usec = 0;
-    offset = time_to_long(&start);  // offset = 0, same units as ev.time
+	struct timeval now;
+    // Fill 'now' with the current time
+    gettimeofday(&now, NULL);
+	printf("seconds: %ld, mircoseconds: %ld/n", now.tv_sec, now.tv_usec);
+	offset = time_to_long(&now);
 
 	while (poll(&fds, 1, ms) > 0) {
 		SYSCALL(ret = read(fd, &ev, sizeof(ev)));
