@@ -795,7 +795,7 @@ int evemu_record(FILE *fp, int fd, int ms)
 	struct pollfd fds = { fd, POLLIN, 0 };
 	struct input_event ev;
 	int ret;
-	long offset = 0;
+	long eventOffset = 0;
 
     // Fill 'now' with the current time
     // Get monotonic time from kernel
@@ -808,12 +808,8 @@ int evemu_record(FILE *fp, int fd, int ms)
 	// Convert to timeval
 	now.tv_sec  = ts.tv_sec;
 	now.tv_usec = ts.tv_nsec / 1000;
-	printf("seconds: %ld, mircoseconds: %ld/n", now.tv_sec, now.tv_usec);
-	fflush(stdout);
-	long tempOffset = time_to_long(&now);
-	printf("tempOffset: %ld/n", tempOffset);
-	fflush(stdout);
-
+	long currentOffset = time_to_long(&now);
+	printf("CurrentOffset - seconds: %ld, mircoseconds: %ld, in Long: %ld\n", now.tv_sec, now.tv_usec, currentOffset);
 
 	while (poll(&fds, 1, ms) > 0) {
 		SYSCALL(ret = read(fd, &ev, sizeof(ev)));
@@ -822,15 +818,14 @@ int evemu_record(FILE *fp, int fd, int ms)
 		if (ret == sizeof(ev)) {
 			long time;
 
-			if(offset == 0) {
-				offset = time_to_long(&ev.time);
-				printf("seconds: %ld, mircoseconds: %ld\n", ev.time.tv_sec, ev.time.tv_usec);
-				printf("currentOffset: %ld\n", offset);
+			if(eventOffset == 0) {
+				eventOffset = time_to_long(&ev.time);
+				printf("eventOffset - seconds: %ld, mircoseconds: %ld, in Long: %ld\n", ev.time.tv_sec, ev.time.tv_usec, eventOffset);
 				fflush(stdout);
 			}
 
 			time = time_to_long(&ev.time);
-			ev.time = long_to_time(time - offset);
+			ev.time = long_to_time(time - currentOffset);
 			evemu_write_event(fp, &ev);
 			fflush(fp);
 		}
