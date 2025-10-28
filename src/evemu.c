@@ -769,6 +769,14 @@ static int write_event_desc(FILE *fp, const struct input_event *ev)
 	return rc;
 }
 
+int evemu_init_event(FILE *fp)
+{
+	int rc;
+	rc = fprintf(fp, "E: 0 0000 0000 0000\n");
+	return rc;
+}
+
+
 int evemu_write_event(FILE *fp, const struct input_event *ev)
 {
 	int rc;
@@ -810,6 +818,8 @@ int evemu_record(FILE *fp, int fd, int ms)
 	now.tv_usec = ts.tv_nsec / 1000;
 	long currentOffset = time_to_long(&now);
 	printf("CurrentOffset - seconds: %ld, mircoseconds: %ld, in Long: %ld\n", now.tv_sec, now.tv_usec, currentOffset);
+	evemu_init_event(fp);
+	fflush(fp);
 
 	while (poll(&fds, 1, ms) > 0) {
 		SYSCALL(ret = read(fd, &ev, sizeof(ev)));
