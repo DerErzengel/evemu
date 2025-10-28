@@ -49,6 +49,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+// global in play.c
+char *evemu_current_filename = NULL;
+
 static int open_evemu_device(struct evemu_device *dev)
 {
 	int fd;
@@ -134,6 +137,7 @@ static int evemu_device(FILE *fp)
 	return 0;
 }
 
+
 static int device(int argc, char *argv[])
 {
 	FILE *fp;
@@ -167,6 +171,8 @@ static int play_from_stdin(int fd)
 
 	return ret;
 }
+
+
 
 static int play_from_file(int recording_fd)
 {
