@@ -46,6 +46,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <sys/time.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -795,9 +797,17 @@ int evemu_record(FILE *fp, int fd, int ms)
 	int ret;
 	long offset = 0;
 
-	struct timeval now;
     // Fill 'now' with the current time
-    gettimeofday(&now, NULL);
+    // Get monotonic time from kernel
+	struct timeval now;
+	struct timespec ts;
+
+	// Get monotonic time from kernel
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+
+	// Convert to timeval
+	now.tv_sec  = ts.tv_sec;
+	now.tv_usec = ts.tv_nsec / 1000;
 	printf("seconds: %ld, mircoseconds: %ld/n", now.tv_sec, now.tv_usec);
 	long tempOffset = time_to_long(&now);
 	printf("tempOffset: %ld/n", tempOffset);
