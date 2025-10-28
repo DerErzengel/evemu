@@ -936,7 +936,7 @@ int evemu_play(FILE *fp, int fd)
 		}
 	}
 
-	for (int i = 15; i > 0; i--) {
+	for (int i = 5; i > 0; i--) {
 		printf("Starting Replay in %d Seconds\r", i);
 		fflush(stdout);
 		sleep(1);
