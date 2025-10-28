@@ -772,7 +772,7 @@ static int write_event_desc(FILE *fp, const struct input_event *ev)
 int evemu_init_event(FILE *fp)
 {
 	int rc;
-	rc = fprintf(fp, "E: 0 0000 0000 0000\n");
+	rc = fprintf(fp, "E: 0.000000 0000 0000 0000\n");
 	return rc;
 }
 
