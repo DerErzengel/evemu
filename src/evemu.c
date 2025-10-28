@@ -800,7 +800,7 @@ int evemu_record(FILE *fp, int fd, int ms)
     gettimeofday(&now, NULL);
 	printf("seconds: %ld, mircoseconds: %ld/n", now.tv_sec, now.tv_usec);
 	long tempOffset = time_to_long(&now);
-	printf("tempOffset: %ld", tempOffset);
+	printf("tempOffset: %ld/n", tempOffset);
 
 	while (poll(&fds, 1, ms) > 0) {
 		SYSCALL(ret = read(fd, &ev, sizeof(ev)));
@@ -811,7 +811,8 @@ int evemu_record(FILE *fp, int fd, int ms)
 
 			if(offset == 0) {
 				offset = time_to_long(&ev.time);
-				printf("currentOffset: %ld", offset);
+				printf("currentOffset: %ld/n", offset);
+				fflush(stdout);
 			}
 
 			time = time_to_long(&ev.time);
