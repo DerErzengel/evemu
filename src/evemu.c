@@ -793,7 +793,11 @@ int evemu_record(FILE *fp, int fd, int ms)
 	struct pollfd fds = { fd, POLLIN, 0 };
 	struct input_event ev;
 	int ret;
-	long offset = 0;
+
+	// --- initialize offset immediately using current time ---
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    long offset = time_to_long(&now) - 1;  // start time for recording
 
 	while (poll(&fds, 1, ms) > 0) {
 		SYSCALL(ret = read(fd, &ev, sizeof(ev)));
@@ -801,9 +805,6 @@ int evemu_record(FILE *fp, int fd, int ms)
 			return ret;
 		if (ret == sizeof(ev)) {
 			long time;
-
-			if (offset == 0)
-				offset = time_to_long(&ev.time) - 1;
 
 			time = time_to_long(&ev.time);
 			ev.time = long_to_time(time - offset);
