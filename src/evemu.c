@@ -817,8 +817,9 @@ int evemu_record(FILE *fp, int fd, int ms, long custom_offset)
 	now.tv_sec  = ts.tv_sec;
 	now.tv_usec = ts.tv_nsec / 1000;
 	long currentOffset = time_to_long(&now);
+	currentOffset = custom_offset;
 	printf("CustomOffset - in Long: %ld\n", custom_offset);
-	printf("CurrentOffset - seconds: %ld, mircoseconds: %ld, in Long: %ld\n", now.tv_sec, now.tv_usec, currentOffset);
+	//printf("CurrentOffset - seconds: %ld, mircoseconds: %ld, in Long: %ld\n", now.tv_sec, now.tv_usec, currentOffset);
 	evemu_init_event(fp);
 	fflush(fp);
 
