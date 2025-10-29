@@ -905,7 +905,7 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
 			      struct timeval *evtime)
 {
 	unsigned long usec;
-	const unsigned long ERROR_MARGIN = 150; /* µs */
+	const unsigned long ERROR_MARGIN = 0; /* µs */
 	int ret;
 
 	ret = evemu_read_event(fp, ev);
