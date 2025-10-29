@@ -409,7 +409,7 @@ int evemu_play_one(int fd, const struct input_event *ev);
  *
  * Returns zero if successful, negative error otherwise.
  */
-int evemu_play(FILE *fp, int fd);
+int evemu_play(FILE *fp, int fd, long start_offset_us);
 
 /**
  * evemu_create() - create a kernel device from the evemu configuration

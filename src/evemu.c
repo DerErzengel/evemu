@@ -902,11 +902,54 @@ static inline unsigned long us2s(unsigned long us)
 }
 
 int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
-			      struct timeval *evtime)
+                              struct timeval *start_time,
+                              long start_offset_us)
+{
+    int ret;
+    unsigned long event_rel_us;   // Event's relative timestamp (µs)
+    unsigned long now_us;         // Current wall-clock time (µs)
+    unsigned long start_us;       // Global replay start time (µs)
+    unsigned long should_be_us;   // When the event should occur (µs)
+    struct timeval now;
+
+
+	printf("StartOffset EVENT: %ld", start_offset_us);
+	fflush(stdout);
+
+    // Read next event from evemu file
+    ret = evemu_read_event(fp, ev);
+    if (ret <= 0)
+        return ret;
+
+    // Convert times to microseconds for easy math
+    start_us = time_to_long(start_time);
+    event_rel_us = time_to_long(&ev->time) - start_offset_us;
+
+    // Calculate when this event *should* happen
+    should_be_us = start_us + event_rel_us;
+
+    // Get current real-world time
+    gettimeofday(&now, NULL);
+    now_us = time_to_long(&now);
+
+    // If we're early, wait until it's time for this event
+    if (now_us < should_be_us) {
+        usleep(should_be_us - now_us);
+    }
+
+    return ret;
+}
+
+
+int evemu_read_event_realtimeOLd(FILE *fp, struct input_event *ev,
+			      struct timeval *evtime, long start_offset_us)
 {
 	unsigned long usec;
 	const unsigned long ERROR_MARGIN = 0; /* µs */
 	int ret;
+
+	printf("StartOffset Replay: %ld", start_offset_us);
+	fflush(stdout);
 
 	ret = evemu_read_event(fp, ev);
 	if (ret <= 0)
@@ -952,7 +995,7 @@ static void evemu_warn_about_incompatible_event(struct input_event *ev)
 	}
 }
 
-int evemu_play(FILE *fp, int fd)
+int evemu_play(FILE *fp, int fd, long start_offset_us)
 {
 	struct input_event ev;
 	struct timeval evtime;
@@ -967,6 +1010,8 @@ int evemu_play(FILE *fp, int fd)
 		}
 	}
 
+	printf("StartOffset Replay: %ld", start_offset_us);
+	fflush(stdout);
 	for (int i = 5; i > 0; i--) {
 		printf("Starting Replay in %d Seconds\r", i);
 		fflush(stdout);
@@ -974,7 +1019,7 @@ int evemu_play(FILE *fp, int fd)
 	}
 
 	memset(&evtime, 0, sizeof(evtime));
-	while (evemu_read_event_realtime(fp, &ev, &evtime) > 0) {
+	while (evemu_read_event_realtime(fp, &ev, &evtime, start_offset_us) > 0) {
 		if (dev && 
 		    (ev.type != EV_SYN || ev.code != SYN_MT_REPORT) &&
 		    !evemu_has_event(dev, ev.type, ev.code))
