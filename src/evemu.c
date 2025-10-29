@@ -902,7 +902,7 @@ static inline unsigned long us2s(unsigned long us)
 }
 
 int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
-                              struct timeval *start_time,
+                              struct timeval *evtime,
                               long start_offset_us)
 {
     int ret;
@@ -922,7 +922,7 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
         return ret;
 
     // Convert times to microseconds for easy math
-    start_us = time_to_long(start_time);
+    start_us = time_to_long(evtime);
     event_rel_us = time_to_long(&ev->time) - start_offset_us;
 
     // Calculate when this event *should* happen

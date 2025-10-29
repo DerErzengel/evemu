@@ -372,7 +372,7 @@ int evemu_read_event(FILE *fp, struct input_event *ev);
  * otherwise.
  */
 int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
-			      struct timeval *evtime);
+			      struct timeval *evtime, long start_offset_us);
 
 /**
  * evemu_record() - read events directly from a kernel device
