@@ -386,7 +386,7 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
  *
  * Returns zero if successful, negative error otherwise.
  */
-int evemu_record(FILE *fp, int fd, int ms);
+int evemu_record(FILE *fp, int fd, int ms, long custom_offset);
 
 
 /**
