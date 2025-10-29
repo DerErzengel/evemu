@@ -901,7 +901,7 @@ static inline unsigned long us2s(unsigned long us)
 	return us / 1000000L;
 }
 
-int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
+int evemu_read_event_realtimeWRONG(FILE *fp, struct input_event *ev,
                               struct timeval *evtime,
                               long start_offset_us)
 {
@@ -941,15 +941,15 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
 }
 
 
-int evemu_read_event_realtimeOLd(FILE *fp, struct input_event *ev,
+int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
 			      struct timeval *evtime, long start_offset_us)
 {
 	unsigned long usec;
 	const unsigned long ERROR_MARGIN = 0; /* µs */
 	int ret;
 
-	printf("StartOffset Replay: %ld", start_offset_us);
-	fflush(stdout);
+	//printf("StartOffset Replay: %ld", start_offset_us);
+	//fflush(stdout);
 
 	ret = evemu_read_event(fp, ev);
 	if (ret <= 0)
