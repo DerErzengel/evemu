@@ -142,7 +142,7 @@ static inline char* make_filename(const char *prefix)
 	return filename;
 }
 
-static bool record_device(int fd, unsigned int timeout, const char *prefix)
+static bool record_device(int fd, unsigned int timeout, const char *prefix, long custom_offset)
 {
 	char *filename = NULL;
 	bool rc = false;
@@ -184,7 +184,7 @@ static bool record_device(int fd, unsigned int timeout, const char *prefix)
 			ftell_start = ftell(output);
 		}
 
-		if (evemu_record(output, fd, timeout)) {
+		if (evemu_record(output, fd, timeout, custom_offset)) {
 			fprintf(stderr, "error: could not record device\n");
 		} else if (autorestart) {
 			ftell_end = ftell(output);
@@ -310,6 +310,14 @@ int main(int argc, char *argv[])
 		prefix = argv[optind++];
 	}
 
+	long custom_offset = 0;
+
+	if (optind < argc) {
+		// Extra argument (timestamp)
+		custom_offset = atol(argv[optind]);
+		printf("Using custom time offset: %ld\n", custom_offset);
+	}
+
 	if (mode == EVEMU_RECORD) {
 #ifdef EVIOCSCLOCKID
 		int clockid = CLOCK_MONOTONIC;
@@ -318,7 +326,7 @@ int main(int argc, char *argv[])
 		if (!test_grab_device(fd))
 			goto out;
 
-		record_device(fd, timeout,  prefix);
+		record_device(fd, timeout,  prefix, custom_offset);
 
 	} else if (mode == EVEMU_DESCRIBE) {
 		if (prefix) {

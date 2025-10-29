@@ -798,7 +798,7 @@ static inline struct timeval long_to_time(long time) {
 	return tv;
 }
 
-int evemu_record(FILE *fp, int fd, int ms)
+int evemu_record(FILE *fp, int fd, int ms, long custom_offset)
 {
 	struct pollfd fds = { fd, POLLIN, 0 };
 	struct input_event ev;
@@ -817,6 +817,7 @@ int evemu_record(FILE *fp, int fd, int ms)
 	now.tv_sec  = ts.tv_sec;
 	now.tv_usec = ts.tv_nsec / 1000;
 	long currentOffset = time_to_long(&now);
+	printf("CustomOffset - in Long: %ld\n", custom_offset);
 	printf("CurrentOffset - seconds: %ld, mircoseconds: %ld, in Long: %ld\n", now.tv_sec, now.tv_usec, currentOffset);
 	evemu_init_event(fp);
 	fflush(fp);
