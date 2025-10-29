@@ -223,7 +223,7 @@ static int play(int argc, char *argv[])
 	int fd;
 		struct stat st;
 
-	if (argc != 2) {
+	if (argc < 2 || argc > 3) {
 		fprintf(stderr, "Usage: %s <device>|<recording>\n", argv[0]);
 		fprintf(stderr, "\n");
 		fprintf(stderr, "If the argument is an input event node,\n"
