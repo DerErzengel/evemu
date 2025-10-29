@@ -163,8 +163,8 @@ static int device(int argc, char *argv[])
 static int play_from_stdin(int fd)
 {
 	int ret;
-
-	ret = evemu_play(stdin, fd);
+	long start_offset_us = 0;
+	ret = evemu_play(stdin, fd, start_offset_us);
 
 	if (ret != 0)
 		fprintf(stderr, "error: could not replay device\n");
