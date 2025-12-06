@@ -941,34 +941,47 @@ int evemu_read_event_realtimeWRONG(FILE *fp, struct input_event *ev,
     return ret;
 }
 
+static inline void add_us_to_timespec(struct timespec *ts, long us)
+{
+    ts->tv_nsec += us * 1000L;
+    while (ts->tv_nsec >= 1000000000L) {
+        ts->tv_nsec -= 1000000000L;
+        ts->tv_sec += 1;
+    }
+}
 
 int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
-			      struct timeval *evtime, long start_offset_us)
+                              struct timeval *evtime, long start_offset_us)
 {
-	unsigned long usec;
-	const unsigned long ERROR_MARGIN = 0; /* µs */
-	int ret;
+    int ret;
+    unsigned long usec;
+    struct timespec target_ts;
 
-	printf("Test BRO:");
-	fflush(stdout);
-	
-	ret = evemu_read_event(fp, ev);
-	if (ret <= 0)
-		return ret;
+    ret = evemu_read_event(fp, ev);
+    if (ret <= 0)
+        return ret;
 
-	if (evtime) {
-		if (evtime->tv_sec == 0 && evtime->tv_usec == 0)
-			*evtime = ev->time;
-		usec = time_to_long(&ev->time) - time_to_long(evtime);
-		if (usec > ERROR_MARGIN * 2) {
-			printf("INFO: Sleeping for %ldus.\n", usec);
-			fflush(stdout);
+    if (evtime) {
+        /* First event: initialize */
+        if (evtime->tv_sec == 0 && evtime->tv_usec == 0)
+            *evtime = ev->time;
 
-			usleep(usec - ERROR_MARGIN);
-			*evtime = ev->time;
-		}
-	}
-	return ret;
+        usec = time_to_long(&ev->time) - time_to_long(evtime);
+
+        if (usec > 0) {
+            /* Get current absolute time */
+            clock_gettime(CLOCK_MONOTONIC, &target_ts);
+
+            /* Add requested microseconds */
+            add_us_to_timespec(&target_ts, usec);
+
+            /* Sleep until absolute target */
+            clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &target_ts, NULL);
+
+            *evtime = ev->time;
+        }
+    }
+    return ret;
 }
 
 int evemu_play_one(int fd, const struct input_event *ev)
