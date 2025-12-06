@@ -946,42 +946,70 @@ static inline uint64_t ts_to_us(struct timespec *ts)
     return (uint64_t)ts->tv_sec * 1000000ULL + ts->tv_nsec / 1000ULL;
 }
 
+static inline uint64_t rdtsc(void)
+{
+    unsigned hi, lo;
+    __asm__ volatile ("rdtsc" : "=a"(lo), "=d"(hi));
+    return ((uint64_t)hi << 32) | lo;
+}
+
+static uint64_t tsc_hz = 0;
+
+static void calibrate_tsc(void)
+{
+    struct timespec ts1, ts2;
+    uint64_t t1, t2;
+
+    clock_gettime(CLOCK_MONOTONIC, &ts1);
+    t1 = rdtsc();
+    usleep(200000);  // 200ms
+    clock_gettime(CLOCK_MONOTONIC, &ts2);
+    t2 = rdtsc();
+
+    uint64_t ns = (ts2.tv_sec - ts1.tv_sec) * 1000000000ULL +
+                  (ts2.tv_nsec - ts1.tv_nsec);
+
+    tsc_hz = (t2 - t1) * 1000000000ULL / ns;
+}
+
+
 int evemu_read_event_realtime(FILE *fp,
                               struct input_event *ev,
-                              struct timeval *evtime,   // <-- still here for ABI
+                              struct timeval *evtime,
                               long start_offset_us)
 {
     static int initialized = 0;
-    static uint64_t replay_start_us;
+    static uint64_t replay_start_tsc;
+    static uint64_t start_offset_tsc;
 
-    uint64_t target_us, now_us;
-    struct timespec now_ts;
+    uint64_t target_tsc, now_tsc;
     int ret;
 
-    (void)evtime;  // ✅ suppress unused warning
+    (void)evtime;
 
     ret = evemu_read_event(fp, ev);
     if (ret <= 0)
         return ret;
 
-    /* Initialize monotonic replay baseline */
     if (!initialized) {
-        clock_gettime(CLOCK_MONOTONIC, &now_ts);
-        replay_start_us = ts_to_us(&now_ts) - (uint64_t)start_offset_us;
+        calibrate_tsc();
+
+        start_offset_tsc = (uint64_t)start_offset_us * tsc_hz / 1000000ULL;
+        replay_start_tsc = rdtsc() - start_offset_tsc;
+
         initialized = 1;
     }
 
-    /* Absolute target time for this event */
-    target_us = replay_start_us + time_to_long(&ev->time);
+    target_tsc = replay_start_tsc +
+                 (uint64_t)time_to_long(&ev->time) * tsc_hz / 1000000ULL;
 
-    /* ✅ PURE SPIN WAIT (MAXIMUM ACCURACY) */
     do {
-        clock_gettime(CLOCK_MONOTONIC, &now_ts);
-        now_us = ts_to_us(&now_ts);
-    } while (now_us < target_us);
+        now_tsc = rdtsc();
+    } while (now_tsc < target_tsc);
 
     return ret;
 }
+
 int evemu_play_one(int fd, const struct input_event *ev)
 {
 	int ret;
