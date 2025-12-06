@@ -51,6 +51,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <poll.h>
 #include <ctype.h>
 #include <unistd.h>
@@ -948,8 +949,8 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
 	const unsigned long ERROR_MARGIN = 0; /* µs */
 	int ret;
 
-	//printf("StartOffset Replay: %ld", start_offset_us);
-	//fflush(stdout);
+	printf("Test BRO: %ld", start_offset_us);
+	fflush(stdout);
 
 	ret = evemu_read_event(fp, ev);
 	if (ret <= 0)
