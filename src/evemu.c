@@ -952,15 +952,16 @@ int evemu_read_event_realtime(FILE *fp,
 {
     static int initialized = 0;
     static uint64_t replay_start_us;
+
     uint64_t target_us, now_us;
-    struct timespec now_ts, sleep_ts;
+    struct timespec now_ts;
     int ret;
 
     ret = evemu_read_event(fp, ev);
     if (ret <= 0)
         return ret;
 
-    /* Initialize real monotonic replay baseline */
+    /* Initialize monotonic replay baseline */
     if (!initialized) {
         clock_gettime(CLOCK_MONOTONIC, &now_ts);
         replay_start_us = ts_to_us(&now_ts) - start_offset_us;
@@ -971,25 +972,10 @@ int evemu_read_event_realtime(FILE *fp,
     target_us = replay_start_us + time_to_long(&ev->time);
 
     /* Get current time */
-    clock_gettime(CLOCK_MONOTONIC, &now_ts);
-    now_us = ts_to_us(&now_ts);
-
-    if (target_us > now_us) {
-        uint64_t sleep_us = target_us - now_us;
-
-        /* Sleep MOST of the time normally */
-        if (sleep_us > 100) {
-            sleep_ts.tv_sec  = sleep_us / 1000000ULL;
-            sleep_ts.tv_nsec = (sleep_us % 1000000ULL) * 1000ULL;
-            nanosleep(&sleep_ts, NULL);
-        }
-
-        /* FINAL PRECISION SPIN WAIT (near-perfect) */
-        do {
-            clock_gettime(CLOCK_MONOTONIC, &now_ts);
-            now_us = ts_to_us(&now_ts);
-        } while (now_us < target_us);
-    }
+    do {
+        clock_gettime(CLOCK_MONOTONIC, &now_ts);
+        now_us = ts_to_us(&now_ts);
+    } while (now_us < target_us);
 
     return ret;
 }
