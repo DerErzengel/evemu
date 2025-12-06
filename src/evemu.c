@@ -949,7 +949,8 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
 	const unsigned long ERROR_MARGIN = 0; /* µs */
 	int ret;
 
-	fprintf(stderr, "Test BRO: %ld\n", start_offset_us);
+	printf("Test BRO:");
+	fflush(stdout);
 	
 	ret = evemu_read_event(fp, ev);
 	if (ret <= 0)
@@ -960,7 +961,7 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
 			*evtime = ev->time;
 		usec = time_to_long(&ev->time) - time_to_long(evtime);
 		if (usec > ERROR_MARGIN * 2) {
-			printf("INFO: Sleeping for %lds.\n", usec);
+			printf("INFO: Sleeping for %ldus.\n", usec);
 			fflush(stdout);
 
 			usleep(usec - ERROR_MARGIN);
@@ -1000,6 +1001,7 @@ int evemu_play(FILE *fp, int fd, long start_offset_us)
 	struct input_event ev;
 	struct timeval evtime;
 	int ret;
+	int test;
 	struct evemu_device *dev;
 
 	dev = evemu_new(NULL);
@@ -1008,14 +1010,6 @@ int evemu_play(FILE *fp, int fd, long start_offset_us)
 			evemu_delete(dev);
 			dev = NULL;
 		}
-	}
-
-	printf("StartOffset Replay: %ld", start_offset_us);
-	fflush(stdout);
-	for (int i = 5; i > 0; i--) {
-		printf("Starting Replay in %d Seconds\r", i);
-		fflush(stdout);
-		sleep(1);
 	}
 
 	memset(&evtime, 0, sizeof(evtime));

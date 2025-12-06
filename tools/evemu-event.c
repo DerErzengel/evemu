@@ -24,11 +24,11 @@
 #include <getopt.h>
 #include <limits.h>
 #include <stdio.h>
-#include <fcntl.h>
+#include <fcntl.h>w
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <linux/input.h>
+#include <linux/input.h>w
 #include <libevdev/libevdev.h>
 
 static struct option opts[] = {

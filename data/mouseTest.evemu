@@ -1,0 +1,65 @@
+# EVEMU 1.3
+# Kernel: 6.17.0-7-generic
+# DMI: dmi:bvnAmericanMegatrendsInc.:bvr3902:bd08/12/2025:br5.17:svnASUS:pnSystemProductName:pvrSystemVersion:rvnASUSTeKCOMPUTERINC.:rnROGSTRIXB550-IGAMING:rvrRevX.0x:cvnDefaultstring:ct3:cvrDefaultstring:skuSKU:
+# Input device name: "PixArt Gaming Mouse"
+# Input device ID: bus 0x03 vendor 0x93a product 0x2530 version 0x111
+# Supported events:
+#   Event type 0 (EV_SYN)
+#     Event code 0 (SYN_REPORT)
+#     Event code 1 (SYN_CONFIG)
+#     Event code 2 (SYN_MT_REPORT)
+#     Event code 3 (SYN_DROPPED)
+#     Event code 4 ((null))
+#     Event code 5 ((null))
+#     Event code 6 ((null))
+#     Event code 7 ((null))
+#     Event code 8 ((null))
+#     Event code 9 ((null))
+#     Event code 10 ((null))
+#     Event code 11 ((null))
+#     Event code 12 ((null))
+#     Event code 13 ((null))
+#     Event code 14 ((null))
+#     Event code 15 (SYN_MAX)
+#   Event type 1 (EV_KEY)
+#     Event code 272 (BTN_LEFT)
+#     Event code 273 (BTN_RIGHT)
+#     Event code 274 (BTN_MIDDLE)
+#     Event code 275 (BTN_SIDE)
+#     Event code 276 (BTN_EXTRA)
+#   Event type 2 (EV_REL)
+#     Event code 0 (REL_X)
+#     Event code 1 (REL_Y)
+#     Event code 8 (REL_WHEEL)
+#     Event code 11 (REL_WHEEL_HI_RES)
+#   Event type 4 (EV_MSC)
+#     Event code 4 (MSC_SCAN)
+# Properties:
+N: PixArt Gaming Mouse
+I: 0003 093a 2530 0111
+P: 00 00 00 00 00 00 00 00
+B: 00 0b 00 00 00 00 00 00 00
+B: 01 00 00 00 00 00 00 00 00
+B: 01 00 00 00 00 00 00 00 00
+B: 01 00 00 00 00 00 00 00 00
+B: 01 00 00 00 00 00 00 00 00
+B: 01 00 00 1f 00 00 00 00 00
+B: 01 00 00 00 00 00 00 00 00
+B: 01 00 00 00 00 00 00 00 00
+B: 01 00 00 00 00 00 00 00 00
+B: 01 00 00 00 00 00 00 00 00
+B: 01 00 00 00 00 00 00 00 00
+B: 01 00 00 00 00 00 00 00 00
+B: 01 00 00 00 00 00 00 00 00
+B: 02 03 09 00 00 00 00 00 00
+B: 03 00 00 00 00 00 00 00 00
+B: 04 10 00 00 00 00 00 00 00
+B: 05 00 00 00 00 00 00 00 00
+B: 11 00 00 00 00 00 00 00 00
+B: 12 00 00 00 00 00 00 00 00
+B: 14 00 00 00 00 00 00 00 00
+B: 15 00 00 00 00 00 00 00 00
+B: 15 00 00 00 00 00 00 00 00
+################################
+#      Waiting for events      #
+################################

@@ -8,12 +8,18 @@
       "name": "(gdb) Launch",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/evemu-play.sh",
-      "args": ["/home/noah/Projects/evemu/data/mouseT.evemu"],
+      "program": "${workspaceFolder}/tools/.libs/evemu-play",
+      "args": ["/home/noah/Projects/evemu/data/keyboard.evemu"],
       "stopAtEntry": false,
-      "cwd": "${fileDirname}",
-      "environment": [],
+      "cwd": "${workspaceFolder}/tools",
+      "environment": [
+        {
+          "name": "LD_LIBRARY_PATH",
+          "value": "${workspaceFolder}/src/.libs:${env:LD_LIBRARY_PATH}"
+        }
+      ],
       "externalConsole": false,
+      "miDebuggerPath": "/home/noah/gdb",
       "MIMode": "gdb",
       "setupCommands": [
         {
@@ -25,6 +31,11 @@
           "description": "Set Disassembly Flavor to Intel",
           "text": "-gdb-set disassembly-flavor intel",
           "ignoreFailures": true
+        },
+        {
+          "description": "Allow pending breakpoints for shared libraries",
+          "text": "set breakpoint pending on",
+          "ignoreFailures": false
         }
       ]
     }
