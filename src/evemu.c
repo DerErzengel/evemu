@@ -948,7 +948,8 @@ static inline uint64_t ts_to_us(struct timespec *ts)
 
 int evemu_read_event_realtime(FILE *fp,
                               struct input_event *ev,
-                              uint64_t start_offset_us)
+                              struct timeval *evtime,   // <-- still here for ABI
+                              long start_offset_us)
 {
     static int initialized = 0;
     static uint64_t replay_start_us;
@@ -957,6 +958,8 @@ int evemu_read_event_realtime(FILE *fp,
     struct timespec now_ts;
     int ret;
 
+    (void)evtime;  // ✅ suppress unused warning
+
     ret = evemu_read_event(fp, ev);
     if (ret <= 0)
         return ret;
@@ -964,14 +967,14 @@ int evemu_read_event_realtime(FILE *fp,
     /* Initialize monotonic replay baseline */
     if (!initialized) {
         clock_gettime(CLOCK_MONOTONIC, &now_ts);
-        replay_start_us = ts_to_us(&now_ts) - start_offset_us;
+        replay_start_us = ts_to_us(&now_ts) - (uint64_t)start_offset_us;
         initialized = 1;
     }
 
     /* Absolute target time for this event */
     target_us = replay_start_us + time_to_long(&ev->time);
 
-    /* Get current time */
+    /* ✅ PURE SPIN WAIT (MAXIMUM ACCURACY) */
     do {
         clock_gettime(CLOCK_MONOTONIC, &now_ts);
         now_us = ts_to_us(&now_ts);
@@ -979,7 +982,6 @@ int evemu_read_event_realtime(FILE *fp,
 
     return ret;
 }
-
 int evemu_play_one(int fd, const struct input_event *ev)
 {
 	int ret;
