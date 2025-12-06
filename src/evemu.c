@@ -949,9 +949,8 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
 	const unsigned long ERROR_MARGIN = 0; /* µs */
 	int ret;
 
-	printf("Test BRO: %ld", start_offset_us);
-	fflush(stdout);
-
+	fprintf(stderr, "Test BRO: %ld\n", start_offset_us);
+	
 	ret = evemu_read_event(fp, ev);
 	if (ret <= 0)
 		return ret;
