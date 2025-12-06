@@ -56,8 +56,25 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <sys/utsname.h>
-
+#include <stdio.h>
+#include <time.h>
+#include <sys/mman.h>
+#include <sched.h>
+#include <pthread.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/time.h>
 #include "version.h"
+
+/* tuneable parameters */
+#define BUSY_WAIT_US 500      /* busy-wait during the last N microseconds */
+#define SPIN_YIELD_US 50      /* if spinning, yield every this many microseconds to reduce 100% CPU */
+#define RT_PRIORITY 80        /* priority for SCHED_FIFO (1..99) */
+#define RT_CPU 0              /* CPU to pin to */
+
+
 
 /* File format version we write out
    NOTE: if you bump the version number, make sure you update README */
@@ -941,71 +958,156 @@ int evemu_read_event_realtimeWRONG(FILE *fp, struct input_event *ev,
     return ret;
 }
 
-static inline uint64_t ts_to_us(struct timespec *ts)
-{
-    return (uint64_t)ts->tv_sec * 1000000ULL + ts->tv_nsec / 1000ULL;
+/* helpers */
+static inline int64_t timeval_to_us(const struct timeval *tv) {
+    return (int64_t)tv->tv_sec * 1000000LL + (int64_t)tv->tv_usec;
 }
 
-static inline uint64_t rdtsc(void)
-{
-    unsigned hi, lo;
-    __asm__ volatile ("rdtsc" : "=a"(lo), "=d"(hi));
-    return ((uint64_t)hi << 32) | lo;
+static inline void us_to_timespec(struct timespec *ts, int64_t us) {
+    ts->tv_sec = us / 1000000LL;
+    ts->tv_nsec = (us % 1000000LL) * 1000LL;
 }
 
-static uint64_t tsc_hz = 0;
-
-static void calibrate_tsc(void)
-{
-    struct timespec ts1, ts2;
-    uint64_t t1, t2;
-
-    clock_gettime(CLOCK_MONOTONIC, &ts1);
-    t1 = rdtsc();
-    usleep(200000);  // 200ms
-    clock_gettime(CLOCK_MONOTONIC, &ts2);
-    t2 = rdtsc();
-
-    uint64_t ns = (ts2.tv_sec - ts1.tv_sec) * 1000000000ULL +
-                  (ts2.tv_nsec - ts1.tv_nsec);
-
-    tsc_hz = (t2 - t1) * 1000000000ULL / ns;
+static inline void timespec_add_us(struct timespec *ts, int64_t us) {
+    ts->tv_nsec += (us % 1000000LL) * 1000LL;
+    ts->tv_sec += us / 1000000LL;
+    if (ts->tv_nsec >= 1000000000L) {
+        ts->tv_sec += 1;
+        ts->tv_nsec -= 1000000000L;
+    }
 }
 
+static inline int64_t timespec_to_us(const struct timespec *ts) {
+    return (int64_t)ts->tv_sec * 1000000LL + ts->tv_nsec / 1000LL;
+}
 
-int evemu_read_event_realtime(FILE *fp,
-                              struct input_event *ev,
-                              struct timeval *evtime,
-                              long start_offset_us)
+/* best-effort to enable real-time and lock memory */
+static void try_enable_realtime(void) {
+    struct sched_param sp;
+    cpu_set_t cpuset;
+
+    /* lock memory to avoid page faults */
+    if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
+        fprintf(stderr, "warning: mlockall failed: %s\n", strerror(errno));
+        /* continue anyway */
+    }
+
+    /* set SCHED_FIFO */
+    sp.sched_priority = RT_PRIORITY;
+    if (sched_setscheduler(0, SCHED_FIFO, &sp) != 0) {
+        fprintf(stderr, "warning: sched_setscheduler(SCHED_FIFO) failed: %s\n"
+                        "  (you may need root or CAP_SYS_NICE). Continuing without real-time.\n",
+                strerror(errno));
+    } else {
+        /* pin to CPU to reduce migration jitter */
+        CPU_ZERO(&cpuset);
+        CPU_SET(RT_CPU, &cpuset);
+        if (sched_setaffinity(0, sizeof(cpuset), &cpuset) != 0) {
+            fprintf(stderr, "warning: sched_setaffinity failed: %s\n", strerror(errno));
+        }
+    }
+}
+
+/* tight spin-wait until target absolute time (monotonic raw), returns when now >= target */
+static void spin_until(const struct timespec *target) {
+    struct timespec now;
+    while (1) {
+        clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+        if ((now.tv_sec > target->tv_sec) ||
+            (now.tv_sec == target->tv_sec && now.tv_nsec >= target->tv_nsec)) {
+            break;
+        }
+        /* Optionally yield to avoid 100% burn for longer spins */
+        int64_t remain_us = (int64_t)(target->tv_sec - now.tv_sec) * 1000000LL
+                            + (target->tv_nsec - now.tv_nsec) / 1000LL;
+        if (remain_us > SPIN_YIELD_US) {
+            /* short sleep to give scheduler a chance (nanosleep with tiny time) */
+            struct timespec ts = {0, 1000}; /* 1 µs */
+            nanosleep(&ts, NULL);
+        }
+        /* otherwise tight loop */
+    }
+}
+
+/* You must provide time_to_long helper that computes microseconds from struct timeval.
+   If you have one already, use that; otherwise here's a safe inline replacement:
+*/
+static inline int64_t timeval_to_long_us(const struct timeval *tv) {
+    return timeval_to_us(tv);
+}
+
+/* Main improved function */
+int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
+                              struct timeval *evtime, long start_offset_us)
 {
-    static int initialized = 0;
-    static uint64_t replay_start_tsc;
-    static uint64_t start_offset_tsc;
-
-    uint64_t target_tsc, now_tsc;
     int ret;
+    int64_t event_us;
+    int64_t base_us;
+    int64_t sleep_us;
+    struct timespec now_ts, target_ts;
+    static int realtime_enabled = 0;
 
-    (void)evtime;
+    /* try to enable real-time once (best-effort) */
+    if (!realtime_enabled) {
+        try_enable_realtime();
+        realtime_enabled = 1;
+    }
 
     ret = evemu_read_event(fp, ev);
     if (ret <= 0)
         return ret;
 
-    if (!initialized) {
-        calibrate_tsc();
+    /* If evtime is provided, but zero-initialized, use start_offset_us
+       to compute the baseline 'start' time so elapsed = event_time - (first_event - offset)
+       i.e. the replay starts as if start_offset_us microseconds had already elapsed.
+    */
+    if (evtime) {
+        if (evtime->tv_sec == 0 && evtime->tv_usec == 0) {
+            /* compute baseline: ev->time - start_offset_us */
+            int64_t ev_us = time_to_long(&ev->time);
+            base_us = ev_us - (int64_t)start_offset_us;
+            if (base_us < 0)
+                base_us = 0;
+            evtime->tv_sec = base_us / 1000000LL;
+            evtime->tv_usec = base_us % 1000000LL;
+        }
 
-        start_offset_tsc = (uint64_t)start_offset_us * tsc_hz / 1000000ULL;
-        replay_start_tsc = rdtsc() - start_offset_tsc;
+        /* compute how many microseconds from 'evtime' to this event */
+        event_us = time_to_long(&ev->time);
+        base_us = timeval_to_long_us(evtime);
+        sleep_us = event_us - base_us;
 
-        initialized = 1;
+        if (sleep_us > 0) {
+            /* get current time (monotonic raw) */
+            clock_gettime(CLOCK_MONOTONIC_RAW, &now_ts);
+
+            /* Build absolute target = now + sleep_us */
+            target_ts = now_ts;
+            timespec_add_us(&target_ts, sleep_us);
+
+            /* If large sleep, do an absolute sleep first to reduce CPU usage */
+            if (sleep_us > BUSY_WAIT_US) {
+                /* Sleep until (target - BUSY_WAIT_US) absolute time first */
+                struct timespec sleep_target = target_ts;
+                timespec_add_us(&sleep_target, -BUSY_WAIT_US);
+
+                /* perform absolute sleep (TIMER_ABSTIME) */
+                int rc = clock_nanosleep(CLOCK_MONOTONIC_RAW, TIMER_ABSTIME, &sleep_target, NULL);
+                if (rc != 0 && rc != EINTR) {
+                    fprintf(stderr, "warning: clock_nanosleep failed: %s\n", strerror(rc));
+                }
+            }
+
+            /* Final spin until target to reduce wake jitter */
+            spin_until(&target_ts);
+
+            /* update evtime baseline to this event's timestamp */
+            *evtime = ev->time;
+        } else {
+            /* event time already passed — no sleep, just update baseline */
+            *evtime = ev->time;
+        }
     }
-
-    target_tsc = replay_start_tsc +
-                 (uint64_t)time_to_long(&ev->time) * tsc_hz / 1000000ULL;
-
-    do {
-        now_tsc = rdtsc();
-    } while (now_tsc < target_tsc);
 
     return ret;
 }
