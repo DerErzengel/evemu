@@ -269,51 +269,8 @@ static int play(int argc, char *argv[])
 	return 0;
 }
 
-void setup_realtime_cpu(void)
-{
-    cpu_set_t set;
-    struct sched_param sp;
-
-    /* -----------------------------
-       1. LOCK TO A SINGLE CPU CORE
-       ----------------------------- */
-
-    CPU_ZERO(&set);
-    CPU_SET(3, &set);   // ✅ CHANGE THIS CORE NUMBER
-
-    if (sched_setaffinity(0, sizeof(set), &set) != 0) {
-        perror("sched_setaffinity failed");
-    } else {
-        printf("✅ CPU pinned to core 3\n");
-    }
-
-    /* -----------------------------
-       2. ENABLE REAL-TIME SCHEDULER
-       ----------------------------- */
-
-    memset(&sp, 0, sizeof(sp));
-    sp.sched_priority = 99;  // ✅ 1–99 (higher = more priority)
-
-    if (sched_setscheduler(0, SCHED_FIFO, &sp) != 0) {
-        perror("sched_setscheduler failed (are you root?)");
-    } else {
-        printf("✅ Real-time scheduler enabled (SCHED_FIFO)\n");
-    }
-
-    /* -----------------------------
-       3. PREVENT SWAPPING (IMPORTANT)
-       ----------------------------- */
-
-    if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
-        perror("mlockall failed");
-    } else {
-        printf("✅ Memory locked (no paging)\n");
-    }
-}
-
 int main(int argc, char *argv[])
 {
-	setup_realtime_cpu();   // ✅ MUST BE FIRST
 	const char *prgm_name = program_invocation_short_name;
 
 	if (prgm_name &&
