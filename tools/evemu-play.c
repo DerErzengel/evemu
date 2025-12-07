@@ -96,6 +96,26 @@ static void open_and_hold_device(struct evemu_device *dev)
 	close(fd);
 }
 
+static struct evemu_device* create_device_permanent(FILE *fp)
+{
+	struct evemu_device *dev;
+	int ret = -ENOMEM;
+	int saved_errno;
+
+	dev = evemu_new(NULL);
+	ret = evemu_read(dev, fp);
+	
+	if (strlen(evemu_get_name(dev)) == 0) {
+		char name[64];
+		sprintf(name, "evemu-%d", getpid());
+		evemu_set_name(dev, name);
+	}
+
+	ret = evemu_create_managed(dev);
+	return dev;
+}
+
+
 static struct evemu_device* create_device(FILE *fp)
 {
 	struct evemu_device *dev;
@@ -271,13 +291,55 @@ static int play(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	const char *prgm_name = program_invocation_short_name;
+    const char *prgm_name = program_invocation_short_name;
 
-	if (prgm_name &&
-	    (strcmp(prgm_name, "evemu-device") == 0 ||
-	     /* when run directly from the sources (not installed) */
-	     strcmp(prgm_name, "lt-evemu-device") == 0))
-		return device(argc, argv);
-	else
-		return play(argc, argv);
+    // Special case: create virtual device
+    if (argc == 3 && strcmp(argv[2], "create") == 0) {
+        int fd;
+        struct stat st;
+        FILE *fp;
+        struct evemu_device *dev = NULL;
+
+        fd = open(argv[1], O_RDONLY);
+        if (fd < 0) {
+            fprintf(stderr, "error: could not open %s (%m)\n", argv[1]);
+            return 1;
+        }
+
+        if (fstat(fd, &st) == -1) {
+            fprintf(stderr, "error: failed to stat %s (%m)\n", argv[1]);
+            close(fd);
+            return 1;
+        }
+
+        fp = fdopen(fd, "r");
+        if (!fp) {
+            fprintf(stderr, "error: fdopen failed (%m)\n");
+            close(fd);
+            return 1;
+        }
+
+        dev = create_permanent_device(fp);
+        if (!dev) {
+            fprintf(stderr, "Failed to create device from %s\n", argv[1]);
+            fclose(fp);
+            return 1;
+        }
+
+        //printf("Device '%s' created at %s\n",
+        //       evemu_get_name(dev),
+        //       libevdev_uinput_get_devnode(dev->uidev));
+
+        // Keep device alive while this process runs
+        fclose(fp);
+        return 0;
+    }
+
+    // Otherwise, behave as normal
+    if (prgm_name &&
+        (strcmp(prgm_name, "evemu-device") == 0 ||
+         strcmp(prgm_name, "lt-evemu-device") == 0))
+        return device(argc, argv);
+    else
+        return play(argc, argv);
 }
