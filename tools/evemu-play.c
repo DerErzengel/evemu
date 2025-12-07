@@ -96,7 +96,7 @@ static void open_and_hold_device(struct evemu_device *dev)
 	close(fd);
 }
 
-static struct evemu_device* create_device_permanent(FILE *fp)
+static struct evemu_device* create_permanent_device(FILE *fp)
 {
 	struct evemu_device *dev;
 	int ret = -ENOMEM;
