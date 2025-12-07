@@ -318,17 +318,21 @@ int main(int argc, char *argv[])
             close(fd);
             return 1;
         }
-
-        dev = create_permanent_device(fp);
+		
+		dev = create_permanent_device(fp);
         if (!dev) {
             fprintf(stderr, "Failed to create device from %s\n", argv[1]);
             fclose(fp);
             return 1;
         }
+		
+		// Keep device alive (already implemented function)
+		open_and_hold_device(dev);
 
-        //printf("Device '%s' created at %s\n",
-        //       evemu_get_name(dev),
-        //       libevdev_uinput_get_devnode(dev->uidev));
+		printf("Device '%s' created at %s\n",
+       evemu_get_name(dev),
+       evemu_get_devnode(dev));
+		fflush(stdout);
 
         // Keep device alive while this process runs
         fclose(fp);
