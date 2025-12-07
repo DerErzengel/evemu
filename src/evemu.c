@@ -1092,7 +1092,7 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
                 timespec_add_us(&sleep_target, -BUSY_WAIT_US);
 
                 /* perform absolute sleep (TIMER_ABSTIME) */
-                int rc = clock_nanosleep(CLOCK_MONOTONIC_RAW, TIMER_ABSTIME, &sleep_target, NULL);
+				int rc = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &sleep_target, NULL);
                 if (rc != 0 && rc != EINTR) {
                     fprintf(stderr, "warning: clock_nanosleep failed: %s\n", strerror(rc));
                 }
