@@ -919,45 +919,6 @@ static inline unsigned long us2s(unsigned long us)
 	return us / 1000000L;
 }
 
-int evemu_read_event_realtimeWRONG(FILE *fp, struct input_event *ev,
-                              struct timeval *evtime,
-                              long start_offset_us)
-{
-    int ret;
-    unsigned long event_rel_us;   // Event's relative timestamp (µs)
-    unsigned long now_us;         // Current wall-clock time (µs)
-    unsigned long start_us;       // Global replay start time (µs)
-    unsigned long should_be_us;   // When the event should occur (µs)
-    struct timeval now;
-
-
-	printf("StartOffset EVENT: %ld", start_offset_us);
-	fflush(stdout);
-
-    // Read next event from evemu file
-    ret = evemu_read_event(fp, ev);
-    if (ret <= 0)
-        return ret;
-
-    // Convert times to microseconds for easy math
-    start_us = time_to_long(evtime);
-    event_rel_us = time_to_long(&ev->time) - start_offset_us;
-
-    // Calculate when this event *should* happen
-    should_be_us = start_us + event_rel_us;
-
-    // Get current real-world time
-    gettimeofday(&now, NULL);
-    now_us = time_to_long(&now);
-
-    // If we're early, wait until it's time for this event
-    if (now_us < should_be_us) {
-        usleep(should_be_us - now_us);
-    }
-
-    return ret;
-}
-
 // test;
 
 /* helpers */

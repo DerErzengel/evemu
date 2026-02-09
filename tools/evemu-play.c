@@ -228,7 +228,7 @@ static int play_from_file(int recording_fd,  long start_offset_us)
 
 	
 	printf("\n");
-	printf("Starting Evemu Replay TEST.. FOR ME NEWE");
+	printf("Test");
 	fflush(stdout);
 
 	fseek(fp, 0, SEEK_SET);
