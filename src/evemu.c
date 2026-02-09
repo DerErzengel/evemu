@@ -1058,6 +1058,8 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
                               struct timeval *evtime,
                               long start_offset_us)
 {
+	 fprintf(stderr, "evemu_read_event_realtime HIT\n"); 
+	 fflush(stderr);
     /* Baselines (must be reset per replay if reused) */
     static int64_t replay_t0_us = -1;   /* CLOCK_MONOTONIC at replay start */
     static int64_t file_t0_us   = -1;   /* first event timestamp in file */
