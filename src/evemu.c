@@ -1091,7 +1091,7 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
     int64_t now_rel_us = now_us - replay_t0_us;
 
     /* Target replay time for this event */
-    int64_t target_rel_us = event_rel_us + start_offset_us;
+    int64_t target_rel_us = event_rel_us;
 
     /* Required delay */
     int64_t sleep_us = target_rel_us - now_rel_us;
