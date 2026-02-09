@@ -1043,6 +1043,16 @@ static inline int64_t timeval_to_long_us(const struct timeval *tv) {
     return timeval_to_us(tv);
 }
 
+static inline int timespec_cmp(const struct timespec *a,
+                               const struct timespec *b)
+{
+    if (a->tv_sec > b->tv_sec) return 1;
+    if (a->tv_sec < b->tv_sec) return -1;
+    if (a->tv_nsec > b->tv_nsec) return 1;
+    if (a->tv_nsec < b->tv_nsec) return -1;
+    return 0;
+}
+
 /* FIXED: uptime-independent, drift-free, CLOCK_MONOTONIC replay */
 int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
                               struct timeval *evtime,
@@ -1152,7 +1162,6 @@ int evemu_play(FILE *fp, int fd, long start_offset_us)
 	struct input_event ev;
 	struct timeval evtime;
 	int ret;
-	int test;
 	struct evemu_device *dev;
 
 	dev = evemu_new(NULL);
