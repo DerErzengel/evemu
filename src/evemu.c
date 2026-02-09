@@ -1095,6 +1095,19 @@ int evemu_read_event_realtime(FILE *fp, struct input_event *ev,
 
     /* Required delay */
     int64_t sleep_us = target_rel_us - now_rel_us;
+	static int64_t last_event_rel_us = -1;
+	static int64_t last_now_rel_us   = -1;
+	
+	if (last_event_rel_us >= 0 && last_now_rel_us >= 0) {
+	    int64_t dt_file  = event_rel_us - last_event_rel_us;
+	    int64_t dt_replay = now_rel_us  - last_now_rel_us;
+	    fprintf(stderr, "dt_file=%6ld us  dt_replay=%6ld us\n",
+	            (long)dt_file, (long)dt_replay);
+	}
+
+	last_event_rel_us = event_rel_us;
+	last_now_rel_us   = now_rel_us;
+
 
     if (sleep_us > 0) {
         /* Absolute target timestamp (MONOTONIC) */
