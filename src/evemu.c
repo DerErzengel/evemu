@@ -958,6 +958,8 @@ int evemu_read_event_realtimeWRONG(FILE *fp, struct input_event *ev,
     return ret;
 }
 
+// test;
+
 /* helpers */
 static inline int64_t timeval_to_us(const struct timeval *tv) {
     return (int64_t)tv->tv_sec * 1000000LL + (int64_t)tv->tv_usec;
