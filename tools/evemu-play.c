@@ -186,19 +186,20 @@ static int device(int argc, char *argv[])
 	return 0;
 }
 
-static int play_from_stdin(int fd)
+static int play_from_stdin(int fd, long start_offset_us)
 {
-	int ret;
-	long start_offset_us = 0;
-	ret = evemu_play(stdin, fd, start_offset_us);
+    int ret;
+    printf("Starting replay from STDIN with offset %ld microseconds\n",
+           start_offset_us);
+    fflush(stdout);
 
-	if (ret != 0)
-		fprintf(stderr, "error: could not replay device\n");
+    ret = evemu_play(stdin, fd, start_offset_us);
 
-	return ret;
+    if (ret != 0)
+        fprintf(stderr, "error: could not replay device\n");
+
+    return ret;
 }
-
-
 
 static int play_from_file(int recording_fd,  long start_offset_us)
 {
@@ -227,8 +228,7 @@ static int play_from_file(int recording_fd,  long start_offset_us)
 	char line[32];
 
 	
-	printf("\n");
-	printf("Test");
+	printf("Starting replay from file '%s' with offset %ld microseconds\n", evemu_current_filename, start_offset_us);
 	fflush(stdout);
 
 	fseek(fp, 0, SEEK_SET);
@@ -275,12 +275,10 @@ static int play(int argc, char *argv[])
 
 	if (argc == 3) {
         start_offset_us = atol(argv[2]); // parse microsecond offset
-		printf("StartOffset Replay: %ld", start_offset_us);
-		fflush(stdout);
-    }
+	}
 	
 	if (S_ISCHR(st.st_mode))
-		play_from_stdin(fd);
+		play_from_stdin(fd, start_offset_us);
 	else
 		play_from_file(fd, start_offset_us);
 
