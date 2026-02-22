@@ -7,7 +7,7 @@ bin_PROGRAMS = \
 	evemu-record \
 	evemu-play \
 	evemu-event \
-	evemu-create
+	evemu-create-device
 
 AM_CPPFLAGS =-I$(top_srcdir)/src/
 
@@ -19,7 +19,7 @@ evemu_record_SOURCES = $(evemu_describe_SOURCES)
 evemu_play_SOURCES = evemu-play.c
 evemu_device_SOURCES = $(evemu_play_SOURCES)
 
-evemu_create_SOURCES = evemu-create.c
+evemu_create_device_SOURCES = evemu-create-device.c
 
 evemu_event_CFLAGS = $(LIBEVDEV_CFLAGS)
 evemu_event_LDADD = $(LIBEVDEV_LIBS)

@@ -1,5 +1,5 @@
 /*****************************************************************************
- * evemu-create - Standalone utility to create and hold a virtual input device
+ * evemu-create-device - Standalone utility to create and hold a virtual input device
  ****************************************************************************/
 
 #define _GNU_SOURCE
