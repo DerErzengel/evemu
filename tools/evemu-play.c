@@ -96,26 +96,6 @@ static void open_and_hold_device(struct evemu_device *dev)
 	close(fd);
 }
 
-static struct evemu_device* create_permanent_device(FILE *fp)
-{
-	struct evemu_device *dev;
-	int ret = -ENOMEM;
-	int saved_errno;
-
-	dev = evemu_new(NULL);
-	ret = evemu_read(dev, fp);
-	
-	if (strlen(evemu_get_name(dev)) == 0) {
-		char name[64];
-		sprintf(name, "evemu-%d", getpid());
-		evemu_set_name(dev, name);
-	}
-
-	ret = evemu_create_managed(dev);
-	return dev;
-}
-
-
 static struct evemu_device* create_device(FILE *fp)
 {
 	struct evemu_device *dev;
@@ -201,11 +181,10 @@ static int play_from_stdin(int fd, long start_offset_us)
     return ret;
 }
 
-static int play_from_file(int recording_fd,  long start_offset_us)
+static int play_from_file(int device_fd, int recording_fd, long start_offset_us)
 {
 	FILE *fp;
-	struct evemu_device *dev = NULL;
-	int fd;
+	int ret;
 
 	fp = fdopen(recording_fd, "r");
 	if (!fp) {
@@ -213,129 +192,77 @@ static int play_from_file(int recording_fd,  long start_offset_us)
 		return -1;
 	}
 
-	dev = create_device(fp);
-	if (!dev) {
-		fprintf(stderr, "error: could not create device: %m\n");
-		fclose(fp);
-		return -1;
-	}
-
-	fd = open_evemu_device(dev);
-	if (fd < 0)
-		goto out;
-
-	int ret;
-	char line[32];
-
-	
-	printf("Starting replay from file '%s' with offset %ld microseconds\n", evemu_current_filename, start_offset_us);
+	printf("Starting replay from file '%s' with offset %ld microseconds\n", evemu_current_filename ? evemu_current_filename : "unknown", start_offset_us);
 	fflush(stdout);
 
 	fseek(fp, 0, SEEK_SET);
-	ret = evemu_play(fp, fd, start_offset_us);
+	ret = evemu_play(fp, device_fd, start_offset_us);
 	if (ret != 0) {
 		fprintf(stderr, "error: could not replay device\n");
 	}
 
-out:
-	evemu_delete(dev);
 	fclose(fp);
-	close(fd);
-	return 0;
+	return ret;
 }
 
 static int play(int argc, char *argv[])
 {
-	int fd;
-		struct stat st;
-
-	if (argc < 2 || argc > 3) {
-		fprintf(stderr, "Usage: %s <device>|<recording>\n", argv[0]);
-		fprintf(stderr, "\n");
-		fprintf(stderr, "If the argument is an input event node,\n"
-				"event data is read from standard input.\n");
-		fprintf(stderr, "If the argument is an evemu recording,\n"
-				"the device is created and the event data is"
-				"read from the same device.\n");
-		return -1;
-	}
-
-	fd = open(argv[1], O_RDWR);
-	if (fd < 0) {
-		fprintf(stderr, "error: could not open file or device (%m)\n");
-		return -1;
-	}
-
-	if (fstat(fd, &st) == -1) {
-		fprintf(stderr, "error: failed to look at file (%m)\n");
-		return -1;
-	}
-
+	int device_fd;
+	int recording_fd;
+	struct stat st;
 	long start_offset_us = 0;
 
-	if (argc == 3) {
-        start_offset_us = atol(argv[2]); // parse microsecond offset
+	if (argc < 2 || argc > 4) {
+		fprintf(stderr, "Usage: %s <device> [<recording>] [<offset_us>]\n", argv[0]);
+		fprintf(stderr, "\n");
+		fprintf(stderr, "If only <device> is provided, event data is read from standard input.\n");
+		fprintf(stderr, "If <recording> is provided, event data is read from the file.\n");
+		return -1;
 	}
-	
-	if (S_ISCHR(st.st_mode))
-		play_from_stdin(fd, start_offset_us);
-	else
-		play_from_file(fd, start_offset_us);
 
+	device_fd = open(argv[1], O_RDWR);
+	if (device_fd < 0) {
+		fprintf(stderr, "error: could not open device %s (%m)\n", argv[1]);
+		return -1;
+	}
 
-	close(fd);
+	if (fstat(device_fd, &st) == -1) {
+		fprintf(stderr, "error: failed to stat device %s (%m)\n", argv[1]);
+		close(device_fd);
+		return -1;
+	}
+
+	if (!S_ISCHR(st.st_mode)) {
+		fprintf(stderr, "error: %s is not a character device\n", argv[1]);
+		close(device_fd);
+		return -1;
+	}
+
+	if (argc == 2) {
+		play_from_stdin(device_fd, 0);
+	} else {
+		if (argc == 4) {
+			start_offset_us = atol(argv[3]);
+		}
+		
+		recording_fd = open(argv[2], O_RDONLY);
+		if (recording_fd < 0) {
+			fprintf(stderr, "error: could not open recording file %s (%m)\n", argv[2]);
+			close(device_fd);
+			return -1;
+		}
+		
+		evemu_current_filename = argv[2];
+		play_from_file(device_fd, recording_fd, start_offset_us);
+	}
+
+	close(device_fd);
 	return 0;
 }
 
 int main(int argc, char *argv[])
 {
     const char *prgm_name = program_invocation_short_name;
-
-    // Special case: create virtual device
-    if (argc == 3 && strcmp(argv[2], "create") == 0) {
-        int fd;
-        struct stat st;
-        FILE *fp;
-        struct evemu_device *dev = NULL;
-
-        fd = open(argv[1], O_RDONLY);
-        if (fd < 0) {
-            fprintf(stderr, "error: could not open %s (%m)\n", argv[1]);
-            return 1;
-        }
-
-        if (fstat(fd, &st) == -1) {
-            fprintf(stderr, "error: failed to stat %s (%m)\n", argv[1]);
-            close(fd);
-            return 1;
-        }
-
-        fp = fdopen(fd, "r");
-        if (!fp) {
-            fprintf(stderr, "error: fdopen failed (%m)\n");
-            close(fd);
-            return 1;
-        }
-		
-		dev = create_permanent_device(fp);
-        if (!dev) {
-            fprintf(stderr, "Failed to create device from %s\n", argv[1]);
-            fclose(fp);
-            return 1;
-        }
-		
-		// Keep device alive (already implemented function)
-		open_and_hold_device(dev);
-
-		printf("Device '%s' created at %s\n",
-       evemu_get_name(dev),
-       evemu_get_devnode(dev));
-		fflush(stdout);
-
-        // Keep device alive while this process runs
-        fclose(fp);
-        return 0;
-    }
 
     // Otherwise, behave as normal
     if (prgm_name &&
